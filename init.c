@@ -54,27 +54,7 @@ void initialization_table()
 	{
 		switch(i)
 		    {
-		        case 0:
-		            init_table[i]->process_id = 0001;
-		            init_table[i]->priority = 0;
-		            init_table[i]->stack_size = STACKSIZE;
-		            init_table[i]->proc_status = IPROC;
-		            init_table[i]->proc_address = kbd_handler;//(void*)(&kbd_handler);
-		        break;
-		        case 1:
-		            init_table[i]->process_id = 0002;
-		            init_table[i]->priority = 2;
-		            init_table[i]->stack_size = STACKSIZE;
-		            init_table[i]->proc_status = IPROC;
-		            init_table[i]->proc_address= disp_handler;//(void*)(&disp_handler);
-		        break;
-		        case 2:
-		            init_table[i]->process_id = 0003;
-		            init_table[i]->priority = 3;
-		            init_table[i]->stack_size = STACKSIZE;
-		            init_table[i]->proc_status = IPROC;
-		            init_table[i]->proc_address= timer_handler;//(void*)(&timer_handler);
-		        break;
+
 		    }
 	}
 	printf("initialization table created!\n");

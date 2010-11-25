@@ -2,8 +2,39 @@
 #ifndef RTX_H_
 #define RTX_H_
 
-#define NUM_OF_ENVELOPES 50
-#define NUM_OF_PROC 3
+//Global Variables
+#define NUM_OF_ENVELOPES	 50
+#define NUM_OF_PROC 		 15
+#define NUM_OF_PRIORITY 	 4
+#define NUM_OF_CHILDREN		 2
+#define MSG_DATA			 512
+
+//Process States
+#define READY		0
+#define BLK_ON_REC	1
+#define BLK_ON_RSC	2
+#define INTERRUPT	3
+#define RUNNING		4
+#define IPROCESS	5
+
+//Process ID's
+#define PROC_A            0001
+#define PROC_B            0002
+#define PROC_C            0003
+#define PROC_TST1         0004
+#define PROC_TST2         0005
+#define PROC_TST3         0006
+#define PROC_TST4         0007
+#define PROC_TST5         0008
+#define PROC_TST6         0009
+#define KBD_I             0010
+#define DISP_I            0011
+#define TIMER_I           0012
+#define NULL_PROC         0013
+#define PROC_CCI          0014
+#define PROC_SET_PRIORITY 0015
+#define WALL_CLK		  0016
+
 
 typedef void (*start_address)(void);	//occurence of proc_address
 
@@ -15,8 +46,10 @@ typedef struct proc_record{
 	int proc_status;
 	start_address proc_address;			//start address of the process code
 }proc_record;
-proc_record *init_table[NUM_OF_PROC];
-									//****MESSAGE ENVELOPE****
+
+proc_record init_table[NUM_OF_PROC];	//static array(initialization table)
+
+//****MESSAGE ENVELOPE****
 typedef struct Envelope{
 	struct Envelope *kernelpt; 	//used for creating the list of envelopes
 	struct Envelope *Next; 		// used to put the queue in different lists
@@ -24,24 +57,13 @@ typedef struct Envelope{
 	int DestinationID; 		//where the message will be sent
 	int clockticks; 		// for waking,sleeping and ualarm functions
 	int Msg_Type[50];		//type of message
-							/* wakeup_code =1
-							 * display_acknowledgement =2
-							 * console_input=3
-							 */
-	char Data [256]; //pointer to an array of characters
+	char Data [MSG_DATA]; //pointer to an array of characters
 }Envelope;
 
-								//****PROCESS CONTROL BLOCK****
-
+//****PROCESS CONTROL BLOCK****
 typedef struct NEWPCB {
 	struct NEWPcb * Kernel_ptr;
 	int State; 					//for the state of the process
-								/* Ready=1
-								 * Blocked on Envelope =2  blocked due to lack of free envelopes
-								 * Blocked on Resources =3 blocked due to lack in receieved messages
-								 * Executing =4
-								 * Interupted =5
-								 */
 	int ProcID; 				//process id of the process
 	struct NewPcb *Next; 				//pointer to put the PCB in the lists it is supposed to be in
 	int Priority; 				//priority of the process
@@ -52,10 +74,19 @@ typedef struct NEWPCB {
 	int jbContext; 				//used by setjump and longjump, not sure if returntype=int. ?????????????
 }NewPCB;
 
-//****FREE MESSAGE ENVELOPE QUEUE****
-typedef struct free_env_Q{
+//****MESSAGE ENVELOPE QUEUE****
+typedef struct msg_env_Q{
+	Evelope *head;
+	Envelope *tail;
+}msg_env_Q;
 
-}free_env_Q;
+//****PROCESS QUEUE****
+typedef struct Process_Q{
+	NewPCB *Head;
+	NewPCB *Tail;
+}Proc_Q;
+
+
 
 //timeout queue
 

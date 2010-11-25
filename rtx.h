@@ -8,6 +8,7 @@
 #define NUM_OF_PRIORITY 	 4
 #define NUM_OF_CHILDREN		 2
 #define MSG_DATA			 512
+#define MAX_STACKSIZE		 16384 //(128^2) 262144(512^2)
 
 //Process States
 #define READY		0
@@ -33,7 +34,7 @@
 #define NULL_PROC         0013
 #define PROC_CCI          0014
 #define PROC_SET_PRIORITY 0015
-#define WALL_CLK		  0016
+#define PROC_WALL_CLK	  0016
 
 
 typedef void (*start_address)(void);	//occurence of proc_address

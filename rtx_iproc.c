@@ -4,14 +4,28 @@
 int signal;
 NewPCB *current_process;
 
-//The interrupt handler decides which iprocesses
+
+context_switch(prevprocess, nextprocess){
+if (prevprocess == NULL || nextprocess == NULL){
+	//terminate()
+}
+else
+	current_process = nextprocess;
+if(setjump(prevprocess)==0){
+	longjmp (nextprocess,1)
+}
+longjmp(previous, setjmp(previous))
+}
+
+//The interrupt handler decides which i processes
 //is called based on the signal function
+
 interrupt_handler(signal)
 {
 	// save current_process context
 	current_process->state = INTERRUPT;
-
-	//select iprocess based on interrupt source
+atomic(on);
+	//select i process based on interrupt source
 	switch(signal){
 
 	case (SIGALRM) : // i_process_timer;
@@ -83,20 +97,43 @@ i_process_timer()
 
 i_process_kb()
 {
-	while(true) // endless loop
+Envelope *input;
+int i;
+
+	while(1) // endless loop
 		if (current_process->recievelist->head != NULL)
 		{
-Store the string of characters from the kb buffer into msg_env
-Set msg_env message subject field to console_input send message envelope to invoking process
-		else
-			CCI_process()
-		}
+			input = K_recieve_message();
 
+			for (i=0;i<inputbuffer;i++)
+			{
+				input->Data[i] = inputbuffer->bufdata[i];
+			}
+//Store the string of characters from the kb buffer into msg_env
+//Set msg_env message subject field to console_input send message envelope to invoking process
+		input->DestinationID = input->SenderID;
+		input->SenderID = KBD_I;
+		input->Msg_Type = KB_INPUT;
+		k_send_message(input->DestinationID, input);
+		}
+		else{
+			inputbuffer->length = 0;
+			inputbuffer->wait_flag = 0;
+			context_switch(current_process,interupted_process);
+		}
+}
 i_process_crt()
 {
-	MessageEnv* disp = message_receive();
+Envelope *output;
+int i;
+
+	while(1) // endless loop
+			if (current_process->recievelist->head != NULL)
+			{
+
+
+			}
 }
-Message is loaded into the TX memory Set status bit to 1
-//something is there to be displayed Call appropriate Unix CRT function to read shared memory send message envelope back to the invoking process }
+
 }
 

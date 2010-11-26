@@ -50,6 +50,7 @@
 #define CONSOLE_OUT		3
 #define KB_INPUT		4
 #define REQUEST_DELAY	5
+#define CRT_ACK			6
 
 typedef void (*start_address)(void);	//occurence of proc_address
 

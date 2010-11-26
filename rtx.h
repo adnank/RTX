@@ -8,14 +8,15 @@
 #define NUM_OF_PRIORITY 	 4
 #define NUM_OF_CHILDREN		 2
 #define MSG_DATA			 512
+#define MAX_STACKSIZE		 16384 //(128^2) 262144(512^2)
 
 //Process States
-#define READY		0
-#define BLK_ON_REC	1
-#define BLK_ON_RSC	2
-#define INTERRUPT	3
-#define RUNNING		4
-#define IPROCESS	5
+#define READY		11
+#define BLK_ON_ENV	12
+#define BLK_ON_RSC	13
+#define INTERRUPT	14
+#define RUNNING		15
+#define IPROCESS	16
 
 //Process ID's
 #define PROC_A            0001
@@ -28,13 +29,28 @@
 #define PROC_TST5         0008
 #define PROC_TST6         0009
 #define KBD_I             0010
-#define DISP_I            0011
+#define CRT_I             0011
 #define TIMER_I           0012
 #define NULL_PROC         0013
 #define PROC_CCI          0014
 #define PROC_SET_PRIORITY 0015
-#define WALL_CLK		  0016
+#define PROC_WALL_CLK	  0016
 
+//Process Priorities
+#define P_IPROCESS	0  //highest priority
+#define P_P1		1
+#define P_P2		2
+#define P_P3		3
+#define P_P4		4
+#define P_NULL		5
+
+#define INITIAL			0
+#define WAKEUP_CODE		1
+#define DISPLAY_ACK		2
+#define CONSOLE_OUT		3
+#define KB_INPUT		4
+#define REQUEST_DELAY	5
+#define CRT_ACK			6
 
 typedef void (*start_address)(void);	//occurence of proc_address
 

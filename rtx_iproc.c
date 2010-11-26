@@ -1,39 +1,47 @@
 #include "rtx.h"
+#include <signal.h>
 
 int signal;
 NewPCB *current_process;
 
+//The interrupt handler decides which iprocesses
+//is called based on the signal function
 interrupt_handler(signal)
 {
 	// save current_process context
-	current_process->state = 2;
-	select interrupt source;
-	switch(signal)
+	current_process->state = INTERRUPT;
 
-	{
-	case A: // i_process_timer;
+	//select iprocess based on interrupt source
+	switch(signal){
+
+	case (SIGALRM) : // i_process_timer;
 	current_process = i_process_timer;
-	i_process_timer state is set as executing;
-	restore i_process_timer context;
-	invoke i_process_timer handler;
+	//i_process_timer state is set as executing
+	context_switch(current_process, )
+	//restore i_process_timer context;
+	//invoke i_process_timer handler;
 	break;
 
-	case B: // i_process_crt;
-	current_process = i_process_crt;
-	i_process_crt state is set as executing;
-	restore i_process_crt context;
-	invoke i_process_crt handler;
-	break;
-
-	case C: // i_process_kb
+	case (SIGUSR1) : // i_process_kb
 	current_process = i_process_kb;
-	i_process_kb state is set as executing;
-	restore i_process_kb context;
-	invoke i_process_kb handler;
+	//i_process_kb state is set as executing
+	context_switch(current_process, )
+	//restore i_process_kb context;
+	//invoke i_process_kb handler;
 	break;
+
+	case (SIGUSR2) : // i_process_crt;
+	current_process = i_process_crt;
+	//i_process_crt state is set as executing
+	context_switch(current_process, )
+	//restore i_process_crt context;
+	//invoke i_process_crt handler;
+	break;
+
+	case D: // i_process_terminate
 	}
 
-	case D: i_process_terminate;
+//I-Process Functions
 save context of interrupt handler
 current_process = save_PCB
 save_PCB = NULL
@@ -41,7 +49,8 @@ set state of current_process to executing
 restore current_process context
 }
 
-i_process_timer
+// timer process is triggered every 100ms
+i_process_timer()
 	{
 		msg_env *timeout_request
 		int temp_sender_pid
@@ -51,9 +60,10 @@ i_process_timer
 			sort msg_env into the timeout_list;
 			timeout_request = receive_message();
 		}
-		if (timeout_list is not empty)
+		if (timeout_list != 0)
 		{
-			decrement tick count of first msg_env in the timeout_list
+			tick_count--;
+			of first msg_env in the timeout_list
 			timeout_request = head_of_timeout_list
 			while(timeout_request[tick_field] is zero)
 				{
@@ -71,7 +81,22 @@ i_process_timer
 		}
 }
 
-iprocess_crt: { MessageEnv* disp = message_receive();
-Message is loaded into the TX memory Set status bit to 1 //something is there to be displayed Call appropriate Unix CRT function to read shared memory send message envelope back to the invoking process }
+i_process_kb()
+{
+	while(true) // endless loop
+		if (current_process->recievelist->head != NULL)
+		{
+Store the string of characters from the kb buffer into msg_env
+Set msg_env message subject field to console_input send message envelope to invoking process
+		else
+			CCI_process()
+		}
+
+i_process_crt()
+{
+	MessageEnv* disp = message_receive();
 }
-iprocess_kb: { if (recieves a message from get_console_chars) Store the string of characters from the kb buffer into msg_env Set msg_env message subject field to console_input send message envelope to invoking process else CCI_process() }
+Message is loaded into the TX memory Set status bit to 1
+//something is there to be displayed Call appropriate Unix CRT function to read shared memory send message envelope back to the invoking process }
+}
+

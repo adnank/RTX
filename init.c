@@ -1,10 +1,30 @@
 #include "rtx.h"
 
+//creates and initialises free envelope queue
+void init_free_env_Q()
+{
+	//msg_env_Q *Free_Env_Queue;   declared in header file
+	Free_Env_Queue = (msg_env_Q*)malloc(sizeof(msg_env_Q));
+	Free_Env_Queue->free_msg_counter = 0;
+	Free_Env_Queue->head = NULL;
+	Free_Env_Queue->tail = NULL;
+}
 
-//following functions allocates memory for message envelopes
+//creates and initialises timeout queue
+void init_timeout_Q()
+{
+	//msg_env_Q *timeout_Q;   declared in header file
+	timeout_Q = (msg_env_Q*)malloc(sizeof(msg_env_Q));
+	timeout_Q->free_msg_counter = 0;
+	timeout_Q->head = NULL;
+	timeout_Q->tail = NULL;
+}
+
+//following functions allocates memory for message envelopes and initialises them
 void init_env()
 {
 	Envelope *env_ptr;
+	init_free_env_Q();		//creates and initializes free envelope queue
 	int i;
 	for(i = 0; i < NUM_OF_ENVELOPES; i++)
 	{
@@ -32,41 +52,85 @@ cleanup:
 		free(env_ptr);
 }
 
-
-//following function allocates memory for the pcb
-void init_pcb()
+void init_rpq()
 {
-	NewPCB *pcb_list[NUM_OF_PROC];
-	int x,y;
-	for(x = 0; x < NUM_OF_PROC; x++)
+	//QueuePCB *ReadyQueue [NUM_OF_PRIORITY]; declared in header file
+
+	int i,j;
+	for(i = 0; i < NUM_OF_PRIORITY; i++)
 	{
-		pcb_list[x] = (NewPCB*)malloc(sizeof(NewPCB));
-		if(pcb_list[x] == NULL)
+		ReadyQueue[i] = (QueuePCB*) malloc(sizeof(QueuePCB));
+		if(ReadyQueue[i] == NULL)
 		{
-			printf("error allocating memory for pcb!\n");
-			for(y = x-1; y >= 0; y--)
-				free(pcb_list[y]);
+			printf("error allocating memory for ready Queue!\n");
+			for(j = i-1; j >= 0; j--)
+				free(ReadyQueue[j]);
 			break;
 		}
-		pcb_list[x]->Kernel_ptr = NULL;
-		pcb_list[x]->Kernelpt_Next = NULL;
-		pcb_list[x]->Kernelpt_Previous = NULL;
-		pcb_list[x]->Next = NULL;
-		pcb_list[x]->Own = NULL;
-		pcb_list[x]->Previous = NULL;
-		pcb_list[x]->Priority = 0;
-		pcb_list[x]->ProcID = 0;
-		pcb_list[x]->Stack = NULL;
-		pcb_list[x]->StartAdd = NULL;
-		pcb_list[x]->State = NULL;
-		pcb_list[x]->head = NULL;
-		pcb_list[x]->jbContext = NULL;
-		pcb_list[x]->recievelist = NULL;
-		pcb_list[x]->tail = NULL;
-
-		//initialize fields
+		ReadyQueue[i]->Head = NULL;
+		ReadyQueue[i]->Tail = NULL;
 	}
+	printf("Ready Process Queue Created and Initialized!\n");
 }
+
+//following function allocates memory for the pcb
+void init_processes()
+{
+	int i, size;
+	//QueuePCB *PCBList;  declared in header file
+	jmp_buf kernel_buf;
+
+	PCBList = (QueuePCB*) malloc(sizeof(QueuePCB));
+
+	init_rpq();
+	NewPCB *pcb_ptr;(NewPCB*)malloc(sizeof(NewPCB));
+	for(i=0; i < NUM_OF_PROC; i++)
+	{
+		pcb_ptr = (NewPCB*)malloc(sizeof(NewPCB));
+		if(pcb_ptr == NULL)
+		{
+			printf("Error allocating memory for PCB\n");
+			pcb_ptr->State = init_table.proc_status;
+			free(pcb_ptr);
+		}
+
+		pcb_ptr->Kernel_ptr = NULL;
+		pcb_ptr->Kernelpt_Next = NULL;
+		pcb_ptr->Kernelpt_Previous = NULL;
+		pcb_ptr->Next = NULL;
+		pcb_ptr->Previous = NULL;
+		pcb_ptr->Own = (msg_env_Q*)malloc(msg_env_Q);
+		pcb_ptr->jbContext = NULL;
+		pcb_ptr->recievelist = (msg_env_Q*)malloc(msg_env_Q);
+		pcb_ptr->Priority = init_table.priority;
+		pcb_ptr->ProcID = init_table.process_id;
+		pcb_ptr->State = init_table.proc_status;
+		pcb_ptr->StartAdd = init_table.proc_address;
+		size = init_table[i].stack_size;
+		pcb_ptr->Stack = ((char *) malloc(size))+ size - STK_OFFSET; 	//stacks grow down
+
+		//head and tail of 'Own' which is a msg_env_Q struct
+		pcb_ptr->Own->head = NULL;
+		pcb_ptr->Own->tail = NULL;
+		//head and tail of 'recievelist' which is a msg_env_Q struct
+		pcb_ptr->recievelist->head = NULL;
+		pcb_ptr->recievelist->tail = NULL;
+
+		//put on PCBList
+
+		if(pcb_ptr->State == READY)
+		{
+			//enqueue on ready ReadyQueue
+		}
+		else if(pcb_ptr->State == BLK_ON_ENV)
+		{
+			//enqueue on blocked on envelope queue
+		}
+		//setup buffers and choose first process to run
+	}
+
+}
+
 
 //creates the initialization table
 void initialize_table()

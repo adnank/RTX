@@ -98,13 +98,13 @@ typedef struct NewPCB {
 	struct NewPCB *Next;				//pointer to put the PCB in the lists it is supposed to be in
 	struct NewPCB *Previous; 			// pointer that points to the previous PCB in the list
 	int Priority; 						//priority of the process
-	struct msg_env_Q *Own; 				//list of envelopes that a process owns
-	Envelope *head; 					//head for the list of the envelopes that the process owns
-	Envelope *tail; 					//tail for the list of the envelopes that the process owns //FOR WHAT ????
-	struct msg_env_Q *recievelist; 		//list of envelopes recieved
+	msg_env_Q *Own; 					//list of envelopes that a process owns
+	msg_env_Q *recievelist; 			//list of envelopes recieved
 	char * Stack;
 	int StartAdd;
 	jmp_buf jbContext; 					//used by setjump and longjump, not sure if returntype=int. ?????????????
+	//Envelope *head; 					//head for the list of the envelopes that the process owns
+	//Envelope *tail; 					//tail for the list of the envelopes that the process owns //FOR WHAT ????
 }NewPCB;
 
 
@@ -136,7 +136,7 @@ QueuePCB *Blocked_On_Resources [NUM_OF_PRIORITY]; 		//lack of recieved messages
 QueuePCB *Blocked_On_Envelope [NUM_OF_PRIORITY]; 		//(free envleopes)pointer that points to the head of the blocked on Envelope queue
 QueuePCB *Blocked_On_interupt [NUM_OF_PRIORITY]; 		//pointer that points to the head of the blocked on interrupt queue
 
-
+QueuePCB *PCBList; //keeps track of all PCB's
 
 //****TRACE BUFFER****
 typedef struct TraceArray{

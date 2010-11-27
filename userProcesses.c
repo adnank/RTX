@@ -44,7 +44,6 @@ void ProcessA()
 void ProcessB()
 {
 	Msg_Env *message;
-
 	do
 	{
 		message = receive();
@@ -90,39 +89,39 @@ Process C:
 					void set_type(int msg_type) {type = msg_type;};
 					int get_type() {return(type);};
 				};*/
-		void ProcessC()
-					{
-						Msg_Env *message;
-						do
+void ProcessC()
+{
+	Msg_Env *message;
+	do
+	{
+	// check for message on local queue first
+		message = local_dequeue();
+		if (message == NULL)
+			message = receive();
+		if ((message->get_type()) % 20 == 0)
+			{
+				strcpy(message->data,"Process C\n");
+				message->set_type(MSG);
+				send_console_characters(message);
+				message = receive();
+					while( message->get_type() != MSG )
+						{
+							local_enqueue(message);  // save message on the local queue
+							message = receive();
+						}
+					request_delay(1000, WAKEUP, message); // 1000 = 10 seconds
+					message = receive();
+						while( message->get_type() != WAKEUP)
 							{
-							// check for message on local queue first
-							message = local_dequeue();
-							if (message == NULL)
+								local_enqueue(message);  // save message on the local queue
 								message = receive();
-							if ((message->get_type()) % 20 == 0)
-								{
-								strcpy(message->data,"Process C\n");
-								message->set_type(MSG);
-								send_console_characters(message);
-								message = receive();
-								while( message->get_type() != MSG )
-									{
-									local_enqueue(message);  // save message on the local queue
-									message = receive();
-									}
-								request_delay(1000, WAKEUP, message); // 1000 = 10 seconds
-								message = receive();
-								while( message->get_type() != WAKEUP)
-									{
-									local_enqueue(message);  // save message on the local queue
-									message = receive();
-									}
-								}
-							release_msg_env(message);
-							return_to_dispatcher();
 							}
-						while(1);
-					}
+			}
+		release_msg_env(message);
+		return_to_dispatcher();
+	}
+	while(1);
+}
 
 
 

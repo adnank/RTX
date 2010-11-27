@@ -3,13 +3,15 @@
 #include <setjmp.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <time.h>
+
 
 #ifndef RTX_H_
 #define RTX_H_
 
 //Global Variables
 #define NUM_OF_ENVELOPES	 50
-#define NUM_OF_PROC 		 15
+#define NUM_OF_PROC 		 16
 #define NUM_OF_PRIORITY 	 4
 #define NUM_OF_CHILDREN		 2
 #define MSG_DATA			 512
@@ -42,13 +44,13 @@
 #define PROC_WALL_CLK	  0016
 
 //Process Priorities
-#define P_IPROCESS	0  //highest priority
+#define P_P0		0
 #define P_P1		1
 #define P_P2		2
 #define P_P3		3
-#define P_P4		4
-#define P_NULL		5
+#define P_IPROCESS	4
 
+//MESSAGE TYPES
 #define INITIAL			0
 #define WAKEUP_CODE		1
 #define DISPLAY_ACK		2
@@ -59,7 +61,7 @@
 
 typedef void (*start_address)(void);	//occurence of proc_address
 
-									//****PROCESS RECORD****
+//****PROCESS RECORD****
 typedef struct proc_record{
 	int process_id;
 	int priority;
@@ -92,14 +94,18 @@ typedef struct NewPCB {
 	struct NewPCB *Next;				//pointer to put the PCB in the lists it is supposed to be in
 	struct NewPCB *Previous; 			// pointer that points to the previous PCB in the list
 	int Priority; 						//priority of the process
-	struct QueueEnv *Own; 				//list of envelopes that a process owns
+	struct msg_env_Q *Own; 				//list of envelopes that a process owns
 	Envelope *head; 					//head for the list of the envelopes that the process owns
 	Envelope *tail; 					//tail for the list of the envelopes that the process owns //FOR WHAT ????
-	struct QueueEnv *recievelist; 		//list of envelopes recieved
+	struct msg_env_Q *recievelist; 		//list of envelopes recieved
 	char * Stack;
 	int StartAdd;
 	jmp_buf jbContext; 					//used by setjump and longjump, not sure if returntype=int. ?????????????
 }NewPCB;
+
+NewPCB *current_process; 				//pointer that points to the PCB of the currently executing process
+NewPCB *Executing;						//pointer that points to the pcb of the currently executing process
+
 
 
 //****MESSAGE ENVELOPE QUEUE****
@@ -107,6 +113,11 @@ typedef struct msg_env_Q{
 	Envelope *head;
 	Envelope *tail;
 }msg_env_Q;
+
+msg_env_Q *timeout_Q;					//timeout queue used by timer handler
+msg_env_Q *Free_Env_Queue; 				//pointing to the head and tail of the envelopes in the free envleope queue
+
+
 
 //****PROCESS QUEUE****
 typedef struct QueuePCB{
@@ -119,8 +130,8 @@ QueuePCB *Blocked_On_Resources [4]; 	//lack of recieved messages
 QueuePCB *Blocked_On_Envelope [4]; 		//(free envleopes)pointer that points to the head of the blocked on Envelope queue
 QueuePCB *Blocked_On_interupt [4]; 		//pointer that points to the head of the blocked on interrupt queue
 
-QueueEnv *Free_Env_Queue; 				//pointing to the head and tail of the envelopes in the free envleope queue
-QueuePCB* PCBList; 						//used to make the list of the processes, this pointer points to the first process in the list
+
+
 
 //****TRACE BUFFER****
 typedef struct TraceArray{
@@ -135,8 +146,6 @@ int Send_Trace_Array_Counter; 			// counter to keep track how much array is fill
 TraceArray* Recieve_Trace_Array [16];
 int Recieve_Trace_Array_Counter; 		// counter to keep track how much array is filled
 
-NewPCB *current_process; 				//pointer that points to the PCB of the currently executing process
-NewPCB* Executing;						//pointer that points to the pcb of the currently executing process
 
 
 //timeout queue

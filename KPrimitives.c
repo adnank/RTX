@@ -33,6 +33,80 @@ NewPCB *get_PCB (int process_id)
 	return Temp;
 }
 
+int K_Sort_Envelope_Enqueue (Envelope * msg_env)
+{
+	if (Timeout_List->Head==NULL && Timeout_List->free_msg_ctr==0) //List contains nothing
+	{
+		K_Enqueue_MsgEnv(msg_env,Timeout_List);
+		Timeout_List->free_msg_ctr++;
+		return 1;
+	}
+	else
+	{
+		if (Timeout_List->free_msg_ctr==1)
+		{
+			Envelope* Temp=Timeout_List->Head;
+			if (msg_env->clockticks>=Temp->clockticks) //list contains 1  add to TAIL
+			{
+				Timeout_List->Tail=msg_env;
+				Temp->Next=msg_env;
+				msg_env->Previous=Temp;
+				Timeout_List->free_msg_ctr++;
+				return 1;
+			}
+			else //List contains 1  add to HEAD
+			{
+				Temp->Previous=msg_env;
+				msg_env->Next=Temp;
+				Timeout_List->Head=msg_env;
+				Timeout_List->Tail=Temp;
+				Timeout_List->free_msg_ctr++;
+				return 1;
+			}
+		}
+		else //List contains more than 1
+		{
+			Envelope* A=Timeout_List->Head; //1st one
+			Envelope* B=Timeout_List->Head->Next; //2nd one
+			if (msg_env->clockticks<A->clockticks)
+			{
+				A->Previous=msg_env;
+				msg_env->Next=A;
+				Timeout_List->Head=msg_env;
+				Timeout_List->free_msg_ctr++;
+				return 1;
+			}
+			else if (msg_env->clockticks>Timeout_List->Head->clockticks && msg_env->clockticks<Timeout_List->Tail->clockticks)
+			{
+				int i;
+				for (i=0;i<Timeout_List->free_msg_ctr;i++)
+				{
+					if (msg_env->clockticks<B->clockticks && msg_env->clockticks>A->clockticks)
+						break;
+					A=A->Next;
+					B=B->Next;
+				}
+				A->Next=msg_env;
+				msg_env->Next=B;
+				B->Previous=msg_env;
+				msg_env->Previous=A;
+				Timeout_List->free_msg_ctr++;
+				return 1;
+			}
+			else if (msg_env->clockticks>Timeout_List->Tail->clockticks)
+			{
+				Envelope* Last=Timeout_List->Tail;
+				Last->Next=msg_env;
+				msg_env->Previous=Last;
+				Timeout_List->Tail=msg_env;
+				Timeout_List->free_msg_ctr++;
+				return 1;
+
+			}
+		}
+	}
+}
+
 int K_Enqueue_PCB (NewPCB *Temp,QueuePCB *List)
 {
 	if (Temp==NULL)
@@ -195,7 +269,7 @@ void context_switch (jmp_buf *previous, jmp_buf *next)    //check parameter ????
 
 //PROCESS_SWITCH
 
-void process_switch()
+void process_switch() //NEED RELEASE PROCESSOR ??????????
 {
 	int i;
 	for (i=0;i<4;i++)
@@ -204,7 +278,7 @@ void process_switch()
 			break;
 	}
 	NewPCB*NEXT=K_Dequeue_PCB (ReadyQueue[i]);
-	context_swtich (current_process->jbContext,NEXT->jbContext);
+//	context_swtich (current_process->jbContext,NEXT->jbContext);
 	current_process->State=1;
 	K_Enqueue_PCB (current_process,ReadyQueue[current_process->Priority]);
 	current_process=NEXT;
@@ -258,12 +332,13 @@ int K_send_message (int destination_pid, Envelope * msg_Envelope)
 {
 	if (msg_Envelope!=NULL)
 	{
-
 		NewPCB *Temp=get_PCB(destination_pid);
 		if (Temp!=NULL)
 		{
 			msg_Envelope->SenderID=current_process->ProcID;
+			printf("%d\n",msg_Envelope->SenderID);
 			msg_Envelope->DestinationID=Temp->ProcID;
+			printf("%d\n",msg_Envelope->DestinationID);
 		K_add_to_trace_array (1,current_process->ProcID, msg_Envelope->DestinationID,msg_Envelope->Msg_Type); //message_type ??????????
 		Envelope* AB=K_Dequeue_MsgEnv(current_process->Own);
 			int A;
@@ -454,7 +529,10 @@ int K_change_priority (int new_Priority, int Target_Process_ID)
 /*
 int K_request_delay (int time_delay, int wakeup_code,Envelope* msg_env)
 {
-
+	msg_env->Msg_Type=wakeup_code;
+	msg_env->clockticks=time_delay;
+	K_send_message(PID_I-timer,msg_env);
+	return 1;
 }
 
 int K_send_console_chars (Envelope * MsgEnv)

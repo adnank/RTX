@@ -15,7 +15,7 @@ void Create_MSG (Envelope* env, int Sender_ID)
 	env->DestinationID = 0;
 	env->Next = NULL;
 	env->Previous = NULL;
-	env->clockticks = 0;
+	env->clockticks = 3;
 	env->Msg_Type=0;
 }
 int Make_PCBList(NewPCB * Temp, QueuePCB *List)
@@ -100,6 +100,32 @@ int main() {
 	Temp3->Own = (QueueEnv*) malloc (sizeof(QueueEnv)); //List of envelopes that the process owns
 //	Temp3->jbContext = 0; //used by setjump and longjump, not sure if returntype=int. ?????????????
 
+	NewPCB* CRT;
+	CRT = (NewPCB *) malloc(sizeof(NewPCB));
+	CRT->Kernelpt_Next = NULL;
+	CRT->Kernelpt_Previous = NULL;
+	CRT->Next = NULL;
+	CRT->Previous = NULL;
+	CRT->State = 4;
+	CRT->ProcID = 1000; //process id of the process
+	CRT->Priority = 10; //priority of the process
+	CRT->recievelist = (QueueEnv*) malloc (sizeof(QueueEnv));//list of envelopes recieved
+	CRT->Own = (QueueEnv*) malloc (sizeof(QueueEnv)); //List of envelopes that the process owns
+
+	NewPCB* KB;
+	KB = (NewPCB *) malloc(sizeof(NewPCB));
+	KB->Kernelpt_Next = NULL;
+	KB->Kernelpt_Previous = NULL;
+	KB->Next = NULL;
+	KB->Previous = NULL;
+	KB->State = 4;
+	KB->ProcID = 3000; //process id of the process
+	KB->Priority = 10; //priority of the process
+	KB->recievelist = (QueueEnv*) malloc (sizeof(QueueEnv));//list of envelopes recieved
+	KB->Own = (QueueEnv*) malloc (sizeof(QueueEnv)); //List of envelopes that the process owns
+//	Temp3->jbContext = 0; //used by setjump and longjump, not sure if returntype=int. ?????????????
+
+
 	int k;
 	for (k=0; k<4; k++)
 	{
@@ -152,6 +178,8 @@ int main() {
 	Make_PCBList(Temp2,PCBList);
 //	printf (" Head node in PCBList %d\n", PCBList->Head->ProcID);
 	Make_PCBList(Temp3,PCBList);
+	Make_PCBList(CRT,PCBList);
+	Make_PCBList(KB,PCBList);
 //	printf (" Middle node in PCBList %d\n", PCBList->Head->Kernelpt_Next->ProcID);
 //	printf (" Tail node in PCBList %d\n", PCBList->Tail->ProcID);
 	Free_Env_Queue = malloc(sizeof(QueueEnv));
@@ -163,16 +191,39 @@ int main() {
 
 	Envelope* msg_1 = malloc (sizeof (Envelope));
 	Create_MSG(msg_1, 10);
-	printf ("Created msg_1 with Sender ID %d\n", msg_1->SenderID);
+	printf ("Created msg_1 with ClockTicks %d\n", msg_1->clockticks);
 
 	Envelope* msg_2 = malloc (sizeof (Envelope));
 	Create_MSG(msg_2, 20);
-	printf ("Created msg_2 with Sender ID %d\n", msg_2->SenderID);
+	msg_2->clockticks=5;
+	printf ("Created msg_2 with ClockTicks %d\n", msg_2->clockticks);
 
 	Envelope* msg_3 = malloc (sizeof (Envelope));
-	msg_3 = NULL;
-	if (msg_3 == NULL)
-	printf("msg_3 is initialized as NULL \n");
+	Create_MSG(msg_3,15);
+	msg_3->clockticks=7;
+	printf ("Created msg_3 with ClockTicks %d\n", msg_3->clockticks);
+
+	Timeout_List=(QueueEnv*) malloc(sizeof(QueueEnv));
+	Timeout_List->Head=NULL;
+	Timeout_List->Tail=NULL;
+	Timeout_List->free_msg_ctr=0;
+
+	K_Sort_Envelope_Enqueue(msg_1);
+//	printf("1st envelope has ticks %d \n",Timeout_List->Head->clockticks);
+//	printf("1st envelope has ticks %d \n",Timeout_List->Tail->clockticks);
+
+	K_Sort_Envelope_Enqueue(msg_2);
+//	printf("1st envelope has ticks %d \n",Timeout_List->Tail->Previous->clockticks);
+//	printf("2st envelope has ticks %d \n",Timeout_List->Tail->clockticks);
+
+	K_Sort_Envelope_Enqueue(msg_3);
+//	printf("1st envelope has ticks %d \n",Timeout_List->Tail->Previous->Previous->clockticks);
+//	printf("2st envelope has ticks %d \n",Timeout_List->Tail->Previous->clockticks);
+//	printf("3st envelope has ticks %d \n",Timeout_List->Tail->clockticks);
+
+	i_buffer=(input_buffer*) malloc (sizeof(input_buffer));
+	o_buffer=(output_buffer*) malloc (sizeof(output_buffer));
+
 
 	current_process=(NewPCB*) malloc(sizeof (NewPCB));
 
@@ -181,14 +232,42 @@ int main() {
 	K_Enqueue_MsgEnv(msg_2,Free_Env_Queue);
 	K_Enqueue_PCB(Temp,ReadyQueue[Temp->Priority]);
 	K_request_msg_env();
-	K_request_msg_env();
-	Send_Trace_Array_Counter=0;
-	Recieve_Trace_Array_Counter=0;
-	K_send_message(Temp2->ProcID,Temp->Own->Head);
+
+	Temp->Own->Head->Data[0]='a';
+//	Temp->Own->Head->Data[1]='b';
+//	Temp->Own->Head->Data[2]='c';
+//	Temp->Own->Head->Data[3]='d';
+	int KHG;
+	KHG=K_send_message(KB->ProcID,Temp->Own->Head);
+	printf("%d\n",KHG);
+	current_process=KB;
+//	printf("%c\n",KB->recievelist->Head->Data[0]);
+	i_process_kb();
+//	current_process=Temp;
+	if (Temp->recievelist!=NULL)
+			printf("msg recieved\n");
+//	printf("iprocess sent me an envelope which has sender id %d\n",current_process->recievelist->Head->SenderID);
+//	printf("FUK MY LIFE\n");
+//	current_process=Temp;
+
+//	current_process=CRT;
+//	i_process_crt();
+
+//	Envelope* MON;
+//	MON=K_recieve_message();
+
+
+//	K_request_msg_env();
+//	Send_Trace_Array_Counter=0;
+//	Recieve_Trace_Array_Counter=0;
+//	K_send_message(Temp2->ProcID,Temp->Own->Head);
+
+
 
 //	printf("message i got has sender id %d \n", Temp2->recievelist->Head->SenderID);
-	printf("envelope info added to Send trace array %d %d \n", Send_Trace_Array[Send_Trace_Array_Counter-1]->SenderID,Send_Trace_Array[Send_Trace_Array_Counter-1]->DestintionID);
-	K_send_message(Temp3->ProcID,Temp->Own->Head);
+
+//	printf("envelope info added to Send trace array %d %d \n", Send_Trace_Array[Send_Trace_Array_Counter-1]->SenderID,Send_Trace_Array[Send_Trace_Array_Counter-1]->DestintionID);
+	/*	K_send_message(Temp3->ProcID,Temp->Own->Head);
 	printf("envelope info added to Send trace array %d %d \n", Send_Trace_Array[Send_Trace_Array_Counter-1]->SenderID,Send_Trace_Array[Send_Trace_Array_Counter-1]->DestintionID);
 	current_process=Temp2;
 	Envelope* ABC=K_recieve_message();
@@ -197,7 +276,7 @@ int main() {
 	K_recieve_message();
 	printf("envelope info added to Recieve trace array %d %d \n", Recieve_Trace_Array[Recieve_Trace_Array_Counter-1]->SenderID,Recieve_Trace_Array[Recieve_Trace_Array_Counter-1]->DestintionID);
 
-
+*/
 	//	printf("envelope in the free queue has sender PID %d \n",Free_Env_Queue->Head->SenderID);
 //	printf("envelope in the free queue has sender PID %d \n",Free_Env_Queue->Tail->SenderID);
 //	K_release_msg_envelope(Temp->Own->Head);

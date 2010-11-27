@@ -15,7 +15,9 @@
 #define NUM_OF_PRIORITY 	 4
 #define NUM_OF_CHILDREN		 2
 #define MSG_DATA			 512
-#define MAX_STACKSIZE		 16384 //(128^2) 262144(512^2)
+#define MAX_STACKSIZE		 16384 //(128^2)
+#define BUFFER_SIZE			 512
+#define TRACE_ARRAY			 16
 
 //Process States
 #define READY		11
@@ -84,6 +86,8 @@ typedef struct Envelope{
 	char *Data [MSG_DATA]; //pointer to an array of characters
 }Envelope;
 
+
+
 //****PROCESS CONTROL BLOCK****
 typedef struct NewPCB {
 	struct NewPCB * Kernel_ptr;
@@ -109,11 +113,11 @@ NewPCB *Executing;						//pointer that points to the pcb of the currently execut
 
 
 
-
 //****MESSAGE ENVELOPE QUEUE****
 typedef struct msg_env_Q{
 	Envelope *head;
 	Envelope *tail;
+	int free_msg_counter;
 }msg_env_Q;
 
 msg_env_Q *timeout_Q;					//timeout queue used by timer handler
@@ -127,10 +131,10 @@ typedef struct QueuePCB{
 	NewPCB *Tail; 						//pointer to the last PCB in the list
 }QueuePCB;
 
-QueuePCB *ReadyQueue [4];
-QueuePCB *Blocked_On_Resources [4]; 	//lack of recieved messages
-QueuePCB *Blocked_On_Envelope [4]; 		//(free envleopes)pointer that points to the head of the blocked on Envelope queue
-QueuePCB *Blocked_On_interupt [4]; 		//pointer that points to the head of the blocked on interrupt queue
+QueuePCB *ReadyQueue [NUM_OF_PRIORITY];
+QueuePCB *Blocked_On_Resources [NUM_OF_PRIORITY]; 		//lack of recieved messages
+QueuePCB *Blocked_On_Envelope [NUM_OF_PRIORITY]; 		//(free envleopes)pointer that points to the head of the blocked on Envelope queue
+QueuePCB *Blocked_On_interupt [NUM_OF_PRIORITY]; 		//pointer that points to the head of the blocked on interrupt queue
 
 
 
@@ -142,17 +146,26 @@ typedef struct TraceArray{
 }TraceArray;
 
 char * Status_Array [250]; 				//index represents number of processes
-TraceArray* Send_Trace_Array [16];
 int Send_Trace_Array_Counter; 			// counter to keep track how much array is filled
-TraceArray* Recieve_Trace_Array [16];
 int Recieve_Trace_Array_Counter; 		// counter to keep track how much array is filled
+TraceArray* Recieve_Trace_Array [TRACE_ARRAY];
+TraceArray* Send_Trace_Array [TRACE_ARRAY];
 
 
 
+//****I/O BUFFERS****
+typedef struct input_buffer{
+	char buffer[BUFFER_SIZE]; //512
+	int Length;
+}input_buffer;
 
-//timeout queue
+typedef struct output_buffer{
+	char buffer[BUFFER_SIZE]; //512
+	int Length;
+}output_buffer;
 
-
+output_buffer* o_buffer;
+input_buffer* i_buffer;
 
 
 #endif /* RTX_H_ */

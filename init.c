@@ -48,6 +48,22 @@ void init_pcb()
 				free(pcb_list[y]);
 			break;
 		}
+		pcb_list[x]->Kernel_ptr = NULL;
+		pcb_list[x]->Kernelpt_Next = NULL;
+		pcb_list[x]->Kernelpt_Previous = NULL;
+		pcb_list[x]->Next = NULL;
+		pcb_list[x]->Own = NULL;
+		pcb_list[x]->Previous = NULL;
+		pcb_list[x]->Priority = 0;
+		pcb_list[x]->ProcID = 0;
+		pcb_list[x]->Stack = NULL;
+		pcb_list[x]->StartAdd = NULL;
+		pcb_list[x]->State = NULL;
+		pcb_list[x]->head = NULL;
+		pcb_list[x]->jbContext = NULL;
+		pcb_list[x]->recievelist = NULL;
+		pcb_list[x]->tail = NULL;
+
 		//initialize fields
 	}
 }

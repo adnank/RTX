@@ -3,11 +3,8 @@
 #include <setjmp.h>
 #include <stdlib.h>
 #include <stdio.h>
-<<<<<<< HEAD
 #include <time.h>
 
-=======
->>>>>>> origin/master
 
 #ifndef RTX_H_
 #define RTX_H_
@@ -97,29 +94,21 @@ typedef struct NewPCB {
 	struct NewPCB *Next;				//pointer to put the PCB in the lists it is supposed to be in
 	struct NewPCB *Previous; 			// pointer that points to the previous PCB in the list
 	int Priority; 						//priority of the process
-<<<<<<< HEAD
 	struct msg_env_Q *Own; 				//list of envelopes that a process owns
 	Envelope *head; 					//head for the list of the envelopes that the process owns
 	Envelope *tail; 					//tail for the list of the envelopes that the process owns //FOR WHAT ????
 	struct msg_env_Q *recievelist; 		//list of envelopes recieved
-=======
-	struct QueueEnv *Own; 				//list of envelopes that a process owns
-	Envelope *head; 					//head for the list of the envelopes that the process owns
-	Envelope *tail; 					//tail for the list of the envelopes that the process owns //FOR WHAT ????
-	struct QueueEnv *recievelist; 		//list of envelopes recieved
->>>>>>> origin/master
 	char * Stack;
 	int StartAdd;
 	jmp_buf jbContext; 					//used by setjump and longjump, not sure if returntype=int. ?????????????
 }NewPCB;
 
-<<<<<<< HEAD
+
 NewPCB *current_process; 				//pointer that points to the PCB of the currently executing process
 NewPCB *Executing;						//pointer that points to the pcb of the currently executing process
 
 
-=======
->>>>>>> origin/master
+
 
 //****MESSAGE ENVELOPE QUEUE****
 typedef struct msg_env_Q{
@@ -143,8 +132,6 @@ QueuePCB *Blocked_On_Resources [4]; 	//lack of recieved messages
 QueuePCB *Blocked_On_Envelope [4]; 		//(free envleopes)pointer that points to the head of the blocked on Envelope queue
 QueuePCB *Blocked_On_interupt [4]; 		//pointer that points to the head of the blocked on interrupt queue
 
-<<<<<<< HEAD
-
 
 
 //****TRACE BUFFER****
@@ -159,37 +146,11 @@ TraceArray* Send_Trace_Array [16];
 int Send_Trace_Array_Counter; 			// counter to keep track how much array is filled
 TraceArray* Recieve_Trace_Array [16];
 int Recieve_Trace_Array_Counter; 		// counter to keep track how much array is filled
-=======
-QueueEnv *Free_Env_Queue; 				//pointing to the head and tail of the envelopes in the free envleope queue
-QueuePCB* PCBList; 						//used to make the list of the processes, this pointer points to the first process in the list
->>>>>>> origin/master
 
-//****TRACE BUFFER****
-typedef struct TraceArray{
-	int SenderID;
-	int DestintionID;
-	int Msg_Type;
-}TraceArray;
 
-char * Status_Array [250]; 				//index represents number of processes
-TraceArray* Send_Trace_Array [16];
-int Send_Trace_Array_Counter; 			// counter to keep track how much array is filled
-TraceArray* Recieve_Trace_Array [16];
-int Recieve_Trace_Array_Counter; 		// counter to keep track how much array is filled
-
-NewPCB *current_process; 				//pointer that points to the PCB of the currently executing process
-NewPCB* Executing;						//pointer that points to the pcb of the currently executing process
 
 
 //timeout queue
-
-
-
-
-
-
-
-
 
 
 

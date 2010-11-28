@@ -5,15 +5,14 @@
  *      Author: abubakar
  */
 
-#include <stdio.h>
-#include <time.h>
-#include "structures.h"
+
+#include "rtx.h"
 
 
 //HELPER FUNCTION - to be used with the kernel primitive, not with KB and CRT proccesses
 
 
-NewPCB *get_PCB (int process_id)
+NewPCB * get_PCB (int process_id)
 {
 	if (PCBList->Head==NULL){
 
@@ -35,51 +34,51 @@ NewPCB *get_PCB (int process_id)
 
 int K_Sort_Envelope_Enqueue (Envelope * msg_env)
 {
-	if (Timeout_List->Head==NULL && Timeout_List->free_msg_ctr==0) //List contains nothing
+	if (timeout_Q->head==NULL && timeout_Q->free_msg_counter==0) //List contains nothing
 	{
-		K_Enqueue_MsgEnv(msg_env,Timeout_List);
-		Timeout_List->free_msg_ctr++;
+		K_Enqueue_MsgEnv(msg_env,timeout_Q);
+		timeout_Q->free_msg_counter++;
 		return 1;
 	}
 	else
 	{
-		if (Timeout_List->free_msg_ctr==1)
+		if (timeout_Q->free_msg_counter==1)
 		{
-			Envelope* Temp=Timeout_List->Head;
+			Envelope* Temp=timeout_Q->head;
 			if (msg_env->clockticks>=Temp->clockticks) //list contains 1  add to TAIL
 			{
-				Timeout_List->Tail=msg_env;
+				timeout_Q->tail=msg_env;
 				Temp->Next=msg_env;
 				msg_env->Previous=Temp;
-				Timeout_List->free_msg_ctr++;
+				timeout_Q->free_msg_counter++;
 				return 1;
 			}
 			else //List contains 1  add to HEAD
 			{
 				Temp->Previous=msg_env;
 				msg_env->Next=Temp;
-				Timeout_List->Head=msg_env;
-				Timeout_List->Tail=Temp;
-				Timeout_List->free_msg_ctr++;
+				timeout_Q->head=msg_env;
+				timeout_Q->tail=Temp;
+				timeout_Q->free_msg_counter++;
 				return 1;
 			}
 		}
 		else //List contains more than 1
 		{
-			Envelope* A=Timeout_List->Head; //1st one
-			Envelope* B=Timeout_List->Head->Next; //2nd one
+			Envelope* A=timeout_Q->head; //1st one
+			Envelope* B=timeout_Q->head->Next; //2nd one
 			if (msg_env->clockticks<A->clockticks)
 			{
 				A->Previous=msg_env;
 				msg_env->Next=A;
-				Timeout_List->Head=msg_env;
-				Timeout_List->free_msg_ctr++;
+				timeout_Q->head=msg_env;
+				timeout_Q->free_msg_counter++;
 				return 1;
 			}
-			else if (msg_env->clockticks>Timeout_List->Head->clockticks && msg_env->clockticks<Timeout_List->Tail->clockticks)
+			else if (msg_env->clockticks>timeout_Q->head->clockticks && msg_env->clockticks<timeout_Q->tail->clockticks)
 			{
 				int i;
-				for (i=0;i<Timeout_List->free_msg_ctr;i++)
+				for (i=0;i<timeout_Q->free_msg_counter;i++)
 				{
 					if (msg_env->clockticks<B->clockticks && msg_env->clockticks>A->clockticks)
 						break;
@@ -90,16 +89,16 @@ int K_Sort_Envelope_Enqueue (Envelope * msg_env)
 				msg_env->Next=B;
 				B->Previous=msg_env;
 				msg_env->Previous=A;
-				Timeout_List->free_msg_ctr++;
+				timeout_Q->free_msg_counter++;
 				return 1;
 			}
-			else if (msg_env->clockticks>Timeout_List->Tail->clockticks)
+			else if (msg_env->clockticks>timeout_Q->tail->clockticks)
 			{
-				Envelope* Last=Timeout_List->Tail;
+				Envelope* Last=timeout_Q->tail;
 				Last->Next=msg_env;
 				msg_env->Previous=Last;
-				Timeout_List->Tail=msg_env;
-				Timeout_List->free_msg_ctr++;
+				timeout_Q->tail=msg_env;
+				timeout_Q->free_msg_counter++;
 				return 1;
 
 			}
@@ -107,7 +106,7 @@ int K_Sort_Envelope_Enqueue (Envelope * msg_env)
 	}
 }
 
-int K_Enqueue_PCB (NewPCB *Temp,QueuePCB *List)
+int K_Enqueue_PCB (NewPCB* Temp,QueuePCB* List)
 {
 	if (Temp==NULL)
 			return 0;
@@ -131,25 +130,25 @@ int K_Enqueue_PCB (NewPCB *Temp,QueuePCB *List)
 	return 0;
 }
 
-int K_Enqueue_MsgEnv (Envelope *Temp, QueueEnv* List) //List=head of the list on which envelope is to be enqueued
+int K_Enqueue_MsgEnv (Envelope *Temp, msg_env_Q * List) //List=head of the list on which envelope is to be enqueued
 {
 	if (Temp==NULL)
 		return 0;
 	else
 	{
-		if (List->Head!=NULL && List->Tail!=NULL)
+		if (List->head!=NULL && List->tail!=NULL)
 		{
-			Envelope *A=List->Tail;
-			List->Tail->Next=Temp;
+			Envelope *A=List->tail;
+			List->tail->Next=Temp;
 			Temp->Next=NULL;
 			Temp->Previous=A;
-			List->Tail=Temp;
+			List->tail=Temp;
 			return 1;
 		}
 		else
 		{
-			List->Head=Temp;
-			List->Tail=Temp;
+			List->head=Temp;
+			List->tail=Temp;
 			Temp->Next=NULL;
 			Temp->Previous=NULL;
 			return 1;
@@ -157,22 +156,23 @@ int K_Enqueue_MsgEnv (Envelope *Temp, QueueEnv* List) //List=head of the list on
 	}
 }
 
-Envelope* K_Dequeue_MsgEnv (QueueEnv* List)
+Envelope* K_Dequeue_MsgEnv(msg_env_Q* List)
 {
-	if (List->Head!= NULL && List->Tail!=NULL)
+	if (List->head!= NULL && List->tail!=NULL)
 	{
-		Envelope *A=List->Head;
-		if (List->Head->Next!=NULL)
+		Envelope *A=List->head;
+		if (List->head->Next!=NULL)
 		{
-			List->Head=List->Head->Next;
-			List->Head->Previous=NULL;
+			List->head=List->head->Next;
+			List->head->Previous=NULL;
 			A->Next=NULL;
 			return A;
 		}
 		else
 		{
-			List->Head=NULL;
-			List->Tail=NULL;
+			printf("TEST2\n");
+			List->head=NULL;
+			List->tail=NULL;
 			return A;
 		}
 	}
@@ -181,7 +181,7 @@ Envelope* K_Dequeue_MsgEnv (QueueEnv* List)
 
 }
 
-NewPCB* K_Search_Dequeue (int PID,QueuePCB*List)
+NewPCB* K_Search_Dequeue (int PID,QueuePCB * List)
 {
 	if (List->Head!=NULL)
 	{
@@ -227,23 +227,23 @@ NewPCB* K_Search_Dequeue (int PID,QueuePCB*List)
 		return NULL;
 }
 
-NewPCB * K_Dequeue_PCB (QueuePCB* List)
+NewPCB * K_Dequeue_PCB (msg_env_Q* List)
 {
 
-	if (List->Head!=NULL && List->Tail!=NULL)
+	if (List->head!=NULL && List->tail!=NULL)
 	{
 		printf("Entered If statement\n");
-		NewPCB *Temp=List->Head;
-		if (List->Head->Next==NULL)
+		NewPCB *Temp=List->head;
+		if (List->head->Next==NULL)
 		{
-			List->Head=NULL;
-			List->Tail=NULL;
+			List->head=NULL;
+			List->tail=NULL;
 			return Temp;
 		}
 		else
 		{
-			List->Head=List->Head->Next;
-			List->Head->Previous=NULL;
+			List->head=List->head->Next;
+			List->head->Previous=NULL;
 			Temp->Next=NULL;
 		}
 
@@ -341,8 +341,10 @@ int K_send_message (int destination_pid, Envelope * msg_Envelope)
 			printf("%d\n",msg_Envelope->DestinationID);
 		K_add_to_trace_array (1,current_process->ProcID, msg_Envelope->DestinationID,msg_Envelope->Msg_Type); //message_type ??????????
 		Envelope* AB=K_Dequeue_MsgEnv(current_process->Own);
+
 			int A;
 			A=K_Enqueue_MsgEnv (AB, Temp->recievelist);
+			printf("sender id %d dest id%d\n",Temp->recievelist->head->SenderID,Temp->recievelist->head->DestinationID);
 			if (Temp->State==3)
 			{
 				Temp->State=1;
@@ -363,12 +365,12 @@ int K_send_message (int destination_pid, Envelope * msg_Envelope)
 	}
 }
 
-Envelope * K_recieve_message ()
+Envelope* K_recieve_message ()
 {
-	if (current_process->recievelist->Head!=NULL)
+//	printf("FUCK U SANJITH\n");
+	if (current_process->recievelist->head!=NULL)
 	{
 		Envelope *Temp=K_Dequeue_MsgEnv(current_process->recievelist);
-
 		if (Temp!=NULL)
 		{
 			K_add_to_trace_array (0,Temp->SenderID, Temp->DestinationID,Temp->Msg_Type); //message_type ?????????
@@ -394,7 +396,7 @@ Envelope * K_recieve_message ()
 
 Envelope * K_request_msg_env ()
 {
-	if (Free_Env_Queue->Head==NULL)
+	if (Free_Env_Queue->head==NULL)
 	{
 //		if (current_process->Priority==i-process-PRIORITY) //check for i-process using the PID ????????
 //			return NULL;
@@ -412,7 +414,7 @@ Envelope * K_request_msg_env ()
 	{
 		Envelope* Temp=K_Dequeue_MsgEnv(Free_Env_Queue);
 		K_Enqueue_MsgEnv(Temp,current_process->Own);
-		Free_Env_Queue->free_msg_ctr--;
+		Free_Env_Queue->free_msg_counter--;
 		if (current_process->State==2)
 		{
 			current_process->State=1;
@@ -448,7 +450,7 @@ int K_release_msg_envelope (Envelope * msg_Envelope)
 	{
 		int A=K_Enqueue_MsgEnv (msg_Envelope, Free_Env_Queue);
 		K_Dequeue_MsgEnv(current_process->Own);
-		Free_Env_Queue->free_msg_ctr++;
+		Free_Env_Queue->free_msg_counter++;
 		return A;
 	}
 }
@@ -484,7 +486,7 @@ int K_request_process_status (Envelope * msg_env_ptr)
 		for (i=0;i<3;i++)
 		{
 			NewPCB *Temp;
-			Temp=PCBList->Head;
+			Temp=PCBList->head;
 			char* tempchar[20];
 			sprintf(tempchar,"%d %d %d,",Temp->ProcID,Temp->State,Temp->Priority);
 			strcat(Status_Array,tempchar);
@@ -526,15 +528,16 @@ int K_change_priority (int new_Priority, int Target_Process_ID)
 		return 0;
 	}
 }
-/*
+
 int K_request_delay (int time_delay, int wakeup_code,Envelope* msg_env)
 {
 	msg_env->Msg_Type=wakeup_code;
 	msg_env->clockticks=time_delay;
-	K_send_message(PID_I-timer,msg_env);
+	K_send_message(5000,msg_env); //5000=TIMER PROCESS ID
+	printf("message to requeust delay to timer process sent\n");
 	return 1;
 }
-
+/*
 int K_send_console_chars (Envelope * MsgEnv)
 {
 	if (MsgEnv!=NULL)
@@ -545,7 +548,7 @@ int K_send_console_chars (Envelope * MsgEnv)
 		if (B==1)
 		{
 			Envelope * Temp=K_recieve_message();
-			if (Temp->Msg_Type==6) //CRT_ank=6
+			if (Temp->Msg_Type==6) //CRT_akn=6
 			{
 				Temp->Msg_Type=2; //display_acknowledgement
 				int C=K_send_message (A,Temp);
@@ -569,7 +572,7 @@ int K_get_console_chars (Envelope * MsgEnv)
 {
 	if (MsgEnv!=NULL)
 	{
-		int return_val=send_message (KB_I-process_ID,MsgEnv); //???????????????????????/
+		int return_val=K_send_message (3000,MsgEnv); // 3000=KB i process id???????????????????????/
 		return return_val;
 	}
 	else

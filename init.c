@@ -5,6 +5,11 @@ void init_free_env_Q()
 {
 	//msg_env_Q *Free_Env_Queue;   declared in header file
 	Free_Env_Queue = (msg_env_Q*)malloc(sizeof(msg_env_Q));
+	if(timeout_Q == NULL)
+	{
+		printf("Error allocating memory for timeout_Q\n");
+		free(timeout_Q);
+	}
 	Free_Env_Queue->free_msg_counter = 0;
 	Free_Env_Queue->head = NULL;
 	Free_Env_Queue->tail = NULL;
@@ -15,6 +20,11 @@ void init_timeout_Q()
 {
 	//msg_env_Q *timeout_Q;   declared in header file
 	timeout_Q = (msg_env_Q*)malloc(sizeof(msg_env_Q));
+	if(timeout_Q == NULL)
+	{
+		printf("Error allocating memory for timeout_Q\n");
+		free(timeout_Q);
+	}
 	timeout_Q->free_msg_counter = 0;
 	timeout_Q->head = NULL;
 	timeout_Q->tail = NULL;
@@ -34,15 +44,17 @@ void init_env()
 			printf("error allocating memory for envelope!\n");
 			goto cleanup;
 		}
-
-		env_ptr->Data = NULL;				//need to check
+		int j;
+		for (j=0;j<MSG_DATA;j++)
+			env_ptr->Data[j] = NULL;				//need to check
 		env_ptr->DestinationID = 0;
 		env_ptr->Msg_Type = INITIAL;
 		env_ptr->Next = NULL;
 		env_ptr->Previous = NULL;
 		env_ptr->SenderID = 0;
 		env_ptr->clockticks = 0;
-		env_ptr->kernelpt = NULL;
+		env_ptr->kernelpt_next = NULL;
+		env_ptr->kernelpt_previous = NULL;
 
 		K_Enqueue_MsgEnv (env_ptr, Free_Env_Queue);
 	}
@@ -73,6 +85,50 @@ void init_rpq()
 	printf("Ready Process Queue Created and Initialized!\n");
 }
 
+//creates and initialises Blocked_On_Resource queue
+void init_blkOnRsc_Q()
+{
+	//QueuePCB *Blocked_On_Resources [NUM_OF_PRIORITY]; declared in header file
+
+	int i,j;
+	for(i = 0; i < NUM_OF_PRIORITY; i++)
+	{
+		Blocked_On_Resources[i] = (QueuePCB*) malloc(sizeof(QueuePCB));
+		if(Blocked_On_Resources[i] == NULL)
+		{
+			printf("error allocating memory for Blocked_On_Resources Queue!\n");
+			for(j = i-1; j >= 0; j--)
+				free(Blocked_On_Resources[j]);
+			break;
+		}
+		Blocked_On_Resources[i]->Head = NULL;
+		Blocked_On_Resources[i]->Tail = NULL;
+	}
+	printf("Blocked_On_Resources Queue Created and Initialized!\n");
+}
+
+//creates and initialises Blocked_On_Envelope queue
+void init_blkOnEnv_Q()
+{
+	//QueuePCB *Blocked_On_Envelope [NUM_OF_PRIORITY]; declared in header file
+
+	int i,j;
+	for(i = 0; i < NUM_OF_PRIORITY; i++)
+	{
+		Blocked_On_Envelope[i] = (QueuePCB*) malloc(sizeof(QueuePCB));
+		if(Blocked_On_Envelope[i] == NULL)
+		{
+			printf("error allocating memory for Blocked_On_Resources Queue!\n");
+			for(j = i-1; j >= 0; j--)
+				free(Blocked_On_Envelope[j]);
+			break;
+		}
+		Blocked_On_Envelope[i]->Head = NULL;
+		Blocked_On_Envelope[i]->Tail = NULL;
+	}
+	printf("Blocked_On_Envelope Queue Created and Initialized!\n");
+}
+
 //following function allocates memory for the pcb
 void init_processes()
 {
@@ -90,24 +146,22 @@ void init_processes()
 		if(pcb_ptr == NULL)
 		{
 			printf("Error allocating memory for PCB\n");
-			pcb_ptr->State = init_table.proc_status;
 			free(pcb_ptr);
 		}
 
-		pcb_ptr->Kernel_ptr = NULL;
 		pcb_ptr->Kernelpt_Next = NULL;
 		pcb_ptr->Kernelpt_Previous = NULL;
 		pcb_ptr->Next = NULL;
 		pcb_ptr->Previous = NULL;
-		pcb_ptr->Own = (msg_env_Q*)malloc(msg_env_Q);
-		pcb_ptr->jbContext = NULL;
-		pcb_ptr->recievelist = (msg_env_Q*)malloc(msg_env_Q);
-		pcb_ptr->Priority = init_table.priority;
-		pcb_ptr->ProcID = init_table.process_id;
-		pcb_ptr->State = init_table.proc_status;
-		pcb_ptr->StartAdd = init_table.proc_address;
+		pcb_ptr->Own = (msg_env_Q*)malloc(sizeof(msg_env_Q));
+//		pcb_ptr->jbContext = NULL;
+		pcb_ptr->recievelist = (msg_env_Q*)malloc(sizeof(msg_env_Q));
+		pcb_ptr->Priority = init_table[i].priority;
+		pcb_ptr->ProcID = init_table[i].process_id;
+		pcb_ptr->State = init_table[i].proc_status;
+		pcb_ptr->address = init_table[i].proc_address;
 		size = init_table[i].stack_size;
-		pcb_ptr->Stack = ((char *) malloc(size))+ size - STK_OFFSET; 	//stacks grow down
+//		pcb_ptr->Stack = ((char *) malloc(size))+ size - STK_OFFSET; 	//stacks grow down
 
 		//head and tail of 'Own' which is a msg_env_Q struct
 		pcb_ptr->Own->head = NULL;
@@ -116,17 +170,19 @@ void init_processes()
 		pcb_ptr->recievelist->head = NULL;
 		pcb_ptr->recievelist->tail = NULL;
 
-		//put on PCBList
+		K_Enqueue_PCB(pcb_ptr, PCBList);
+
+		//setup buffers and choose first process to run
 
 		if(pcb_ptr->State == READY)
 		{
-			//enqueue on ready ReadyQueue
+			//enqueue on ready process queue
 		}
 		else if(pcb_ptr->State == BLK_ON_ENV)
 		{
 			//enqueue on blocked on envelope queue
 		}
-		//setup buffers and choose first process to run
+
 	}
 
 }
@@ -136,7 +192,6 @@ void init_processes()
 void initialize_table()
 {
 	int i;
-
 	for(i = 0; i < NUM_OF_PROC; i++)
 	{
 		switch(i)
@@ -188,7 +243,7 @@ void initialize_table()
 		            init_table[i].priority = P_P2;
 		            init_table[i].stack_size = MAX_STACKSIZE;
 		            init_table[i].proc_status = READY;
-		            init_table[i].proc_address= add_ptst3;		//(void*)(&add_ptst3);
+//		            init_table[i].proc_address= add_ptst3;		//(void*)(&add_ptst3);
 		        break;
 		        case 7:
 		            init_table[i].process_id = PROC_TST4;
@@ -198,7 +253,7 @@ void initialize_table()
 		            init_table[i].proc_address= add_ptst4;		//(void*)(&add_ptst4);
 		        break;
 		        case 8:
-		            init_table[i].process_id = PROC_TST5;
+//		            init_table[i].process_id = PROC_TST5;
 		            init_table[i].priority = P_P2;
 		            init_table[i].stack_size = MAX_STACKSIZE;
 		            init_table[i].proc_status = READY;
@@ -257,10 +312,79 @@ void initialize_table()
 	printf("initialization table created!\n");
 }
 
-//selecting highest priority process from the Ready_Q and putting it to execution
-void select_first_process()
-{
 
+//creating and initialising Trace Arrays
+void init_TraceArrays()
+{
+	int i,j;
+	for(i = 0; i < TRACE_ARRAY; i++)
+	{
+		Recieve_Trace_Array[i] = (TraceArray*) malloc(sizeof(TraceArray));
+		Send_Trace_Array[i] = (TraceArray*) malloc(sizeof(TraceArray));
+		if(Recieve_Trace_Array[i] == NULL)
+		{
+			printf("error allocating memory for Receive Trace array!\n");
+			for(j = i-1; j >= 0; j--)
+				free(Recieve_Trace_Array[j]);
+			break;
+		}
+		Recieve_Trace_Array[i]->DestintionID = 0;
+		Recieve_Trace_Array[i]->Msg_Type = 0;
+		Recieve_Trace_Array[i]->SenderID = 0;
+		Recieve_Trace_Array[i]->timestamp = 0;
+
+		if(Send_Trace_Array[i] == NULL)
+		{
+			printf("error allocating memory for Send Trace array!\n");
+			for(j = i-1; j >= 0; j--)
+				free(Recieve_Trace_Array[j]);
+			break;
+		}
+		Send_Trace_Array[i]->DestintionID = 0;
+		Send_Trace_Array[i]->Msg_Type = 0;
+		Send_Trace_Array[i]->SenderID = 0;
+		Send_Trace_Array[i]->timestamp = 0;
+	}
+	printf("Trace Arrays Created and Initialized!\n");
+}
+
+//creating and initialising I/O Buffers
+void init_ioBuffers()
+{
+	int i,j;
+	//io_buffer *output_buffer;		//declared in header file
+	//io_buffer *input_buffer;		//declared in header file
+	output_buffer = (io_buffer*) malloc(sizeof(io_buffer));
+	input_buffer = (io_buffer*) malloc(sizeof(io_buffer));
+
+	if(output_buffer == NULL)
+	{
+		printf("Error allocating memory for output buffer\n");
+		free(output_buffer);
+	}
+
+	//output_buffer->buffer = '0';
+	output_buffer->Length = 0;
+
+	if(input_buffer == NULL)
+	{
+		printf("Error allocating memory for input buffer\n");
+		free(input_buffer);
+	}
+
+	//input_buffer->buffer = '0';
+	input_buffer->Length = 0;
+}
+
+//CONTEXT SWITCH
+void context_switch(NewPCB *current, NewPCB * next_proc)
+{
+	int return_val = setjmp(current->jbContext);
+	if(return_val == 0)
+	{
+		current_process = next_proc;
+		longjmp(next_proc->jbContext, 1);
+	}
 }
 
 
